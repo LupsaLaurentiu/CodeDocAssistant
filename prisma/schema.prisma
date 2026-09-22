@@ -1,0 +1,49 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RepositoryStatus {
+  PENDING
+  CLONING
+  INDEXING
+  READY
+  FAILED
+}
+
+model Repository {
+  id            String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  url           String           @unique
+  owner         String
+  name          String
+  defaultBranch String?          @map("default_branch")
+  status        RepositoryStatus @default(PENDING)
+  errorMessage  String?          @map("error_message")
+  createdAt     DateTime         @default(now()) @map("created_at")
+  updatedAt     DateTime         @updatedAt @map("updated_at")
+  chunks        CodeChunk[]
+
+  @@index([status])
+  @@map("repositories")
+}
+
+model CodeChunk {
+  id           String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  repositoryId String                       @map("repository_id") @db.Uuid
+  filePath     String                       @map("file_path")
+  language     String
+  startLine    Int                          @map("start_line")
+  endLine      Int                          @map("end_line")
+  symbol       String?
+  content      String
+  embedding    Unsupported("vector(1536)")?
+  createdAt    DateTime                     @default(now()) @map("created_at")
+  repository   Repository                   @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+
+  @@index([repositoryId, filePath])
+  @@map("code_chunks")
+}
