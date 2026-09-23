@@ -18,6 +18,33 @@ export interface RepositoryAnalysisResult {
   filesIndexed: number;
   filesSkipped: number;
   chunksIndexed: number;
+  commitSha?: string;
+  indexReused?: boolean;
+}
+
+export type RepositoryAnalysisPhase =
+  | "IDLE"
+  | "CLONING"
+  | "SCANNING"
+  | "CHUNKING"
+  | "EMBEDDING"
+  | "SAVING"
+  | "COMPLETE"
+  | "FAILED";
+
+export interface RepositoryAnalysisProgress {
+  repositoryId: string;
+  status: RepositoryWorkspaceData["status"];
+  phase: RepositoryAnalysisPhase;
+  filesDiscovered: number;
+  filesProcessed: number;
+  filesSkipped: number;
+  chunksTotal: number;
+  chunksEmbedded: number;
+  error: string | null;
+  commitSha: string | null;
+  indexReused: boolean;
+  updatedAt: string;
 }
 
 export interface RepositoryWorkspaceData {
@@ -31,4 +58,5 @@ export interface RepositoryWorkspaceData {
   chunkCount: number;
   languages: string[];
   indexedAt: string;
+  indexedCommitSha?: string;
 }

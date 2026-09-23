@@ -184,7 +184,7 @@ export function SourceCodeDialog({
             {state.source.content.split(/\r?\n/).map((line, index) => (
               <span
                 key={`${state.source.startLine + index}-${index}`}
-                className="flex px-4 hover:bg-white/5"
+                className={`flex px-4 ${state.source.startLine + index >= citation.startLine && state.source.startLine + index <= citation.endLine ? "bg-blue-400/10" : "hover:bg-white/5"}`}
               >
                 <span
                   className="mr-5 w-10 shrink-0 text-right text-zinc-500 tabular-nums select-none"

@@ -16,7 +16,10 @@ export function validateRepositoryUrl(
 
   if (
     url.protocol !== "https:" ||
-    url.hostname.toLowerCase() !== GITHUB_HOSTNAME
+    url.hostname.toLowerCase() !== GITHUB_HOSTNAME ||
+    url.username ||
+    url.password ||
+    url.port
   ) {
     throw new Error("Only HTTPS GitHub repository URLs are supported.");
   }

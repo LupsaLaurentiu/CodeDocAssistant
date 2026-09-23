@@ -16,16 +16,28 @@ enum RepositoryStatus {
 }
 
 model Repository {
-  id            String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  url           String           @unique
-  owner         String
-  name          String
-  defaultBranch String?          @map("default_branch")
-  status        RepositoryStatus @default(PENDING)
-  errorMessage  String?          @map("error_message")
-  createdAt     DateTime         @default(now()) @map("created_at")
-  updatedAt     DateTime         @updatedAt @map("updated_at")
-  chunks        CodeChunk[]
+  id               String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  url              String           @unique
+  owner            String
+  name             String
+  defaultBranch    String?          @map("default_branch")
+  status           RepositoryStatus @default(PENDING)
+  errorMessage     String?          @map("error_message")
+  analysisToken    String?          @map("analysis_token") @db.Uuid
+  leaseExpiresAt   DateTime?        @map("lease_expires_at")
+  analysisPhase    String           @default("IDLE") @map("analysis_phase")
+  filesDiscovered  Int              @default(0) @map("files_discovered")
+  filesProcessed   Int              @default(0) @map("files_processed")
+  filesSkipped     Int              @default(0) @map("files_skipped")
+  chunksTotal      Int              @default(0) @map("chunks_total")
+  chunksEmbedded   Int              @default(0) @map("chunks_embedded")
+  indexReused      Boolean          @default(false) @map("index_reused")
+  indexedCommitSha String?          @map("indexed_commit_sha")
+  indexSignature   String?          @map("index_signature")
+  indexedAt        DateTime?        @map("indexed_at")
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
+  chunks           CodeChunk[]
 
   @@index([status])
   @@map("repositories")

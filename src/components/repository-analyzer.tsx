@@ -1,15 +1,7 @@
 "use client";
-
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import {
-  AlertCircle,
-  ArrowRight,
-  CheckCircle2,
-  GitFork,
-  LoaderCircle,
-} from "lucide-react";
-
+import { GitFork, LoaderCircle, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -19,102 +11,91 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import type { RepositoryAnalysisResult } from "@/types/repository";
+import { AnalysisProgress } from "@/components/analysis-progress";
+import { analysisResultSchema } from "@/lib/ingestion/progress-schema";
+import { validateRepositoryUrl } from "@/lib/github/validate-repository-url";
 
-type AnalysisState =
-  | { status: "idle" }
-  | { status: "analyzing" }
-  | { status: "success"; result: RepositoryAnalysisResult }
-  | { status: "error"; message: string };
-
-function isAnalysisResult(value: unknown): value is RepositoryAnalysisResult {
-  if (typeof value !== "object" || value === null) {
-    return false;
-  }
-
-  const candidate = value as Record<string, unknown>;
-  return (
-    typeof candidate.repositoryId === "string" &&
-    typeof candidate.repositoryUrl === "string" &&
-    typeof candidate.filesDiscovered === "number" &&
-    typeof candidate.filesIndexed === "number" &&
-    typeof candidate.filesSkipped === "number" &&
-    typeof candidate.chunksIndexed === "number"
-  );
-}
-
-function getResponseError(payload: unknown): string {
-  if (typeof payload === "object" && payload !== null) {
-    const error = (payload as Record<string, unknown>).error;
-    if (typeof error === "string") {
-      return error;
-    }
-  }
-  return "Repository analysis failed. Check the server logs for details.";
-}
-
-export function RepositoryAnalyzer() {
+export function RepositoryAnalyzer({
+  initialUrl = "",
+}: {
+  initialUrl?: string;
+}) {
   const router = useRouter();
-  const [state, setState] = useState<AnalysisState>({ status: "idle" });
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = event.currentTarget;
-    const formData = new FormData(form);
-    const repositoryUrl = String(formData.get("repositoryUrl") ?? "").trim();
-
-    setState({ status: "analyzing" });
-
+  const [url, setUrl] = useState(initialUrl);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [error, setError] = useState<string>();
+  const [activeUrl, setActiveUrl] = useState("");
+  const [attempt, setAttempt] = useState(0);
+  const active = useRef(false);
+  async function analyze() {
+    if (active.current) return;
+    let normalized: string;
+    try {
+      normalized = validateRepositoryUrl(url).url;
+    } catch (error) {
+      setError(
+        error instanceof Error ? error.message : "Enter a valid GitHub URL.",
+      );
+      return;
+    }
+    active.current = true;
+    setIsAnalyzing(true);
+    setError(undefined);
+    setActiveUrl(normalized);
+    setAttempt((value) => value + 1);
     try {
       const response = await fetch("/api/repositories/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ repositoryUrl }),
+        body: JSON.stringify({ repositoryUrl: normalized }),
       });
       const payload: unknown = await response.json();
-
-      if (!response.ok) {
-        throw new Error(getResponseError(payload));
-      }
-
-      const result =
-        typeof payload === "object" && payload !== null
-          ? (payload as Record<string, unknown>).result
-          : undefined;
-      if (!isAnalysisResult(result)) {
-        throw new Error("The server returned an invalid analysis result.");
-      }
-
-      setState({ status: "success", result });
+      if (!response.ok)
+        throw new Error(
+          typeof payload === "object" &&
+            payload !== null &&
+            "error" in payload &&
+            typeof payload.error === "string"
+            ? payload.error
+            : "Analysis failed. Please retry.",
+        );
+      const result = analysisResultSchema.parse(
+        typeof payload === "object" && payload !== null && "result" in payload
+          ? payload.result
+          : undefined,
+      );
       router.push(`/repositories/${result.repositoryId}`);
+      router.refresh();
     } catch (error) {
-      setState({
-        status: "error",
-        message:
-          error instanceof Error
-            ? error.message
-            : "Repository analysis failed unexpectedly.",
-      });
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Analysis failed. Check your connection and retry.",
+      );
+    } finally {
+      active.current = false;
+      setIsAnalyzing(false);
     }
   }
-
-  const isAnalyzing = state.status === "analyzing";
-
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    void analyze();
+  }
   return (
-    <Card className="border-white/10 bg-zinc-900/70 shadow-2xl shadow-blue-950/20 ring-white/10 backdrop-blur">
+    <Card className="border-white/10 bg-zinc-900/70 shadow-xl ring-white/10">
       <CardHeader className="gap-2">
         <CardTitle className="text-lg text-zinc-100">
           Analyze a repository
         </CardTitle>
         <CardDescription className="text-zinc-400">
-          Public GitHub repositories are supported in the initial version.
+          Public GitHub repositories · Reuse unchanged indexes
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form className="space-y-4" onSubmit={handleSubmit}>
+        <form className="space-y-4" onSubmit={submit}>
           <label
-            className="block text-sm font-medium text-zinc-300"
             htmlFor="repository-url"
+            className="block text-sm font-medium text-zinc-300"
           >
             GitHub repository URL
           </label>
@@ -127,67 +108,57 @@ export function RepositoryAnalyzer() {
               id="repository-url"
               name="repositoryUrl"
               type="url"
-              inputMode="url"
-              autoComplete="url"
+              value={url}
+              onChange={(event) => setUrl(event.target.value)}
               placeholder="https://github.com/owner/repository"
-              className="h-11 border-white/10 bg-black/20 pl-10 text-zinc-100 placeholder:text-zinc-600"
               disabled={isAnalyzing}
               required
+              maxLength={2048}
+              className="h-11 border-white/10 bg-black/20 pl-10 text-zinc-100 placeholder:text-zinc-500"
             />
           </div>
           <Button
             type="submit"
-            size="lg"
             className="h-11 w-full bg-blue-600 text-white hover:bg-blue-500"
-            aria-describedby="analysis-status"
             disabled={isAnalyzing}
           >
             {isAnalyzing ? (
               <>
-                <LoaderCircle className="animate-spin" aria-hidden="true" />
-                Cloning and indexing…
+                <LoaderCircle
+                  className="size-4 animate-spin"
+                  aria-hidden="true"
+                />
+                Analyzing repository…
+              </>
+            ) : error ? (
+              <>
+                <RotateCcw className="size-4" aria-hidden="true" />
+                Retry analysis
               </>
             ) : (
-              <>
-                Analyze Repository
-                <ArrowRight data-icon="inline-end" aria-hidden="true" />
-              </>
+              "Analyze Repository"
             )}
           </Button>
-
-          <div
-            id="analysis-status"
-            className="min-h-10 text-center text-xs text-zinc-500"
-            aria-live="polite"
-          >
-            {state.status === "idle" &&
-              "Source chunks are sent to OpenAI for embedding, then stored in your local database."}
-            {state.status === "analyzing" &&
-              "This can take a few minutes. Keep this page open."}
-            {state.status === "error" && (
-              <span className="inline-flex items-start gap-2 text-left text-red-300">
-                <AlertCircle
-                  className="mt-0.5 size-4 shrink-0"
-                  aria-hidden="true"
-                />
-                {state.message}
-              </span>
-            )}
-            {state.status === "success" && (
-              <span className="inline-flex items-start gap-2 text-left text-emerald-300">
-                <CheckCircle2
-                  className="mt-0.5 size-4 shrink-0"
-                  aria-hidden="true"
-                />
-                <span>
-                  Indexed {state.result.filesIndexed} files into{" "}
-                  {state.result.chunksIndexed} chunks. Opening workspace…
-                  {state.result.filesSkipped > 0 &&
-                    ` Skipped ${state.result.filesSkipped} empty or oversized files.`}
-                </span>
-              </span>
-            )}
-          </div>
+          {error && (
+            <p
+              role="alert"
+              className="rounded-lg border border-red-400/20 bg-red-400/5 p-3 text-sm leading-6 text-red-200"
+            >
+              {error}
+            </p>
+          )}
+          {activeUrl && (
+            <AnalysisProgress
+              key={activeUrl}
+              url={activeUrl}
+              attempt={attempt}
+            />
+          )}
+          <p className="text-xs leading-5 text-zinc-400">
+            {isAnalyzing
+              ? "Keep this page open. Progress reflects completed work, not an estimated percentage."
+              : "Source chunks are sent to OpenAI for embedding. Analyze only code you are authorized to share with the provider."}
+          </p>
         </form>
       </CardContent>
     </Card>

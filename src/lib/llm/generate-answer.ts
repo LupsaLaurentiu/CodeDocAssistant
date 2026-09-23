@@ -1,7 +1,10 @@
+import { zodTextFormat } from "openai/helpers/zod";
 import { getAiConfig } from "@/config/ai";
+import { ApiError } from "@/lib/api/errors";
+import { logEvent } from "@/lib/observability";
 import type { ConversationMessage, RetrievedChunk } from "@/types/rag";
-
 import { buildRagContext } from "../rag/context";
+import { generatedAnswerSchema, type GeneratedAnswer } from "./answer-schema";
 import { getOpenAiClient } from "./client";
 import { CODE_ASSISTANT_SYSTEM_PROMPT } from "./prompts";
 
@@ -9,22 +12,39 @@ export async function generateAnswer(
   question: string,
   chunks: RetrievedChunk[],
   history: ConversationMessage[] = [],
-): Promise<string> {
-  const conversationHistory = history
-    .map((message) => `${message.role.toUpperCase()}: ${message.content}`)
-    .join("\n\n");
-  const response = await getOpenAiClient().responses.create({
-    model: getAiConfig().chatModel,
+): Promise<GeneratedAnswer> {
+  const started = performance.now();
+  const model = getAiConfig().chatModel;
+  const response = await getOpenAiClient().responses.parse({
+    model,
     instructions: CODE_ASSISTANT_SYSTEM_PROMPT,
-    input: `<conversation_history>\n${conversationHistory || "No previous messages."}\n</conversation_history>\n\n<repository_context>\n${buildRagContext(chunks)}\n</repository_context>\n\n<current_question>\n${question}\n</current_question>`,
-    max_output_tokens: 1_500,
+    input: JSON.stringify({
+      conversation_history: history,
+      repository_context: buildRagContext(chunks),
+      current_question: question,
+    }),
+    text: { format: zodTextFormat(generatedAnswerSchema, "repository_answer") },
+    max_output_tokens: 2_500,
     store: false,
   });
-
-  const answer = response.output_text.trim();
-  if (!answer) {
-    throw new Error("OpenAI returned an empty answer.");
-  }
-
-  return answer;
+  logEvent("llm.answer", {
+    model,
+    durationMs: Math.round(performance.now() - started),
+    inputTokens: response.usage?.input_tokens ?? null,
+    outputTokens: response.usage?.output_tokens ?? null,
+    status: response.status,
+  });
+  if (response.status !== "completed")
+    throw new ApiError(
+      "The answer was interrupted before completion. Try a narrower question.",
+      502,
+      "ANSWER_INCOMPLETE",
+    );
+  if (!response.output_parsed)
+    throw new ApiError(
+      "The AI provider could not produce a supported answer to this question. Try rephrasing it.",
+      422,
+      "ANSWER_UNAVAILABLE",
+    );
+  return response.output_parsed;
 }

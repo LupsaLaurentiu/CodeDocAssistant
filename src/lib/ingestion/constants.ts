@@ -50,4 +50,5 @@ export const INGESTION_LIMITS = {
   maxFileBytes: 512 * 1024,
   maxRepositoryBytes: 25 * 1024 * 1024,
   maxChunkCharacters: 24_000,
+  maxChunks: 5_000,
 } as const;

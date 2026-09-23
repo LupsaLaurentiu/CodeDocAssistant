@@ -12,6 +12,7 @@ import {
 
 import { RepositoryChat } from "@/components/repository-chat";
 import { RepositorySidebar } from "@/components/repository-sidebar";
+import { RepositoryAnalyzer } from "@/components/repository-analyzer";
 import type { RepositoryWorkspaceData } from "@/types/repository";
 
 export function RepositoryWorkspace({
@@ -104,6 +105,14 @@ export function RepositoryWorkspace({
                 {repository.status === "READY" ? "Indexed" : "Updated"}{" "}
                 {indexedAt}
               </p>
+              {repository.indexedCommitSha && (
+                <p
+                  className="mt-1 font-mono text-xs text-zinc-400"
+                  title={repository.indexedCommitSha}
+                >
+                  Commit {repository.indexedCommitSha.slice(0, 7)}
+                </p>
+              )}
             </section>
 
             <section className="rounded-xl border border-white/10 bg-zinc-900/60 p-4">
@@ -131,13 +140,20 @@ export function RepositoryWorkspace({
           <section className="min-h-0 min-w-0 overflow-hidden rounded-xl border border-white/10 bg-zinc-900/60 shadow-2xl shadow-black/20">
             {repository.status === "READY" ? (
               <RepositoryChat
+                key={repository.id + repository.indexedAt}
                 repositoryId={repository.id}
                 repositoryName={repository.name}
+                indexRevision={repository.indexedAt}
               />
             ) : (
               <div className="flex h-full items-center justify-center overflow-y-auto p-8 text-center text-sm text-zinc-400">
-                This repository is not ready for questions. Current status:{" "}
-                {repository.status}.
+                <div className="w-full max-w-md space-y-4">
+                  <p>
+                    This repository is not ready for questions. Current status:{" "}
+                    {repository.status}.
+                  </p>
+                  <RepositoryAnalyzer initialUrl={repository.url} />
+                </div>
               </div>
             )}
           </section>

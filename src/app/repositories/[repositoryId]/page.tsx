@@ -5,6 +5,7 @@ import { z } from "zod";
 import { RepositoryWorkspace } from "@/components/repository-workspace";
 import { db } from "@/lib/db";
 import type { RepositoryWorkspaceData } from "@/types/repository";
+import { effectiveRepositoryStatus } from "@/lib/ingestion/effective-status";
 
 export const dynamic = "force-dynamic";
 
@@ -50,11 +51,12 @@ export default async function RepositoryPage({
     owner: repository.owner,
     name: repository.name,
     defaultBranch: repository.defaultBranch ?? undefined,
-    status: repository.status,
+    status: effectiveRepositoryStatus(repository),
     fileCount: Number(fileCounts[0]?.count ?? 0),
     chunkCount: repository._count.chunks,
     languages: languageRows.map((row) => row.language),
-    indexedAt: repository.updatedAt.toISOString(),
+    indexedAt: (repository.indexedAt ?? repository.updatedAt).toISOString(),
+    indexedCommitSha: repository.indexedCommitSha ?? undefined,
   };
 
   return <RepositoryWorkspace repository={data} />;

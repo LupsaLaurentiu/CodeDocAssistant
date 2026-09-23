@@ -33,5 +33,9 @@ export interface ConversationMessage {
 export interface RepositoryAnswer {
   answer: string;
   citations: SourceCitation[];
+  consultedSources: SourceCitation[];
+  /** Reference validity only, not a guarantee of factual correctness. */
+  grounding: "verified" | "insufficient" | "unverified";
+  warning?: string;
   retrievedChunks: number;
 }

@@ -10,7 +10,8 @@ export const db =
   globalForPrisma.prisma ??
   new PrismaClient({
     datasourceUrl: getEnvironment().DATABASE_URL,
-    log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
+    // Route-level structured errors intentionally omit raw queries and user data.
+    log: [],
   });
 
 if (process.env.NODE_ENV !== "production") {

@@ -1,6 +1,6 @@
 import { Braces, SearchCode } from "lucide-react";
 
-import { RepositoryAnalyzer } from "@/components/repository-analyzer";
+import { RepositoryLauncher } from "@/components/repository-launcher";
 
 export default function Home() {
   return (
@@ -30,7 +30,7 @@ export default function Home() {
               </p>
             </div>
 
-            <RepositoryAnalyzer />
+            <RepositoryLauncher />
           </div>
         </section>
 

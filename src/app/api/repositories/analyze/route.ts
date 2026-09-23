@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { validateRepositoryUrl } from "@/lib/github";
 import { analyzeRepository } from "@/lib/ingestion";
+import { errorResponse } from "@/lib/api/errors";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -47,15 +48,9 @@ export async function POST(request: Request): Promise<Response> {
     const result = await analyzeRepository(reference);
     return Response.json({ result }, { status: 201 });
   } catch (error) {
-    console.error("Repository analysis failed", error);
-    return Response.json(
-      {
-        error:
-          error instanceof Error
-            ? error.message
-            : "Repository analysis failed unexpectedly.",
-      },
-      { status: 500 },
+    return errorResponse(
+      error,
+      "Repository analysis failed. Check PostgreSQL and the server configuration, then retry.",
     );
   }
 }

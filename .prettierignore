@@ -3,3 +3,9 @@ node_modules
 package-lock.json
 public
 prisma/migrations
+tmp
+.data
+test-results
+playwright-report
+docs/screenshots
+docs/demo

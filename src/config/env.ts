@@ -1,7 +1,13 @@
 import { z } from "zod";
 
 const envSchema = z.object({
-  DATABASE_URL: z.string().url("DATABASE_URL must be a valid PostgreSQL URL"),
+  DATABASE_URL: z
+    .string()
+    .url("DATABASE_URL must be a valid PostgreSQL URL")
+    .refine(
+      (value) => /^postgres(?:ql)?:\/\//.test(value),
+      "DATABASE_URL must use postgres:// or postgresql://",
+    ),
   OPENAI_API_KEY: z.string().min(1, "OPENAI_API_KEY is required"),
   OPENAI_CHAT_MODEL: z.string().min(1).default("gpt-4.1-mini"),
   OPENAI_EMBEDDING_MODEL: z.string().min(1).default("text-embedding-3-small"),

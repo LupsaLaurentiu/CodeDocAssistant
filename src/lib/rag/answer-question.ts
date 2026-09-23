@@ -1,10 +1,8 @@
 import { generateAnswer } from "@/lib/llm/generate-answer";
-import type {
-  ConversationMessage,
-  RepositoryAnswer,
-  SourceCitation,
-} from "@/types/rag";
+import type { ConversationMessage, RepositoryAnswer } from "@/types/rag";
 
+import { INSUFFICIENT_ANSWER, validateAnswerCitations } from "./citations";
+import { logEvent } from "@/lib/observability";
 import { selectContextChunks } from "./context";
 import { createEmbeddings } from "./embeddings";
 import { retrieveRelevantChunks } from "./retrieval";
@@ -21,34 +19,13 @@ function buildRetrievalQuery(
   return [...recentUserQuestions, question].join("\n");
 }
 
-function buildCitations(
-  chunks: ReturnType<typeof selectContextChunks>,
-): SourceCitation[] {
-  const seen = new Set<string>();
-
-  return chunks.flatMap((chunk) => {
-    const key = `${chunk.filePath}:${chunk.startLine}-${chunk.endLine}`;
-    if (seen.has(key)) {
-      return [];
-    }
-    seen.add(key);
-    return [
-      {
-        chunkId: chunk.id,
-        filePath: chunk.filePath,
-        startLine: chunk.startLine,
-        endLine: chunk.endLine,
-      },
-    ];
-  });
-}
-
 export async function answerRepositoryQuestion(input: {
   repositoryId: string;
   question: string;
   history?: ConversationMessage[];
 }): Promise<RepositoryAnswer> {
   const history = input.history ?? [];
+  const started = performance.now();
   const retrievalQuery = buildRetrievalQuery(input.question, history);
   const [queryEmbedding] = await createEmbeddings([retrievalQuery]);
   if (!queryEmbedding) {
@@ -64,17 +41,29 @@ export async function answerRepositoryQuestion(input: {
 
   if (contextChunks.length === 0) {
     return {
-      answer:
-        "I could not find relevant indexed source code for this question.",
+      answer: INSUFFICIENT_ANSWER,
       citations: [],
-      retrievedChunks: 0,
+      consultedSources: [],
+      grounding: "insufficient",
+      retrievedChunks: retrieved.length,
     };
   }
 
-  const answer = await generateAnswer(input.question, contextChunks, history);
+  const generated = await generateAnswer(
+    input.question,
+    contextChunks,
+    history,
+  );
+  const answer = validateAnswerCitations(generated, contextChunks);
+  logEvent("rag.answer", {
+    repositoryId: input.repositoryId,
+    durationMs: Math.round(performance.now() - started),
+    retrievedChunks: retrieved.length,
+    citedSources: answer.citations.length,
+    grounding: answer.grounding,
+  });
   return {
-    answer,
-    citations: buildCitations(contextChunks),
+    ...answer,
     retrievedChunks: retrieved.length,
   };
 }

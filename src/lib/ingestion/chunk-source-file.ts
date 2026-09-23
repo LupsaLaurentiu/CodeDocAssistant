@@ -18,6 +18,9 @@ export function chunkSourceFile({
   maxCharacters = 24_000,
 }: ChunkSourceFileOptions): SourceChunk[] {
   if (
+    !Number.isInteger(maxLines) ||
+    !Number.isInteger(overlapLines) ||
+    !Number.isInteger(maxCharacters) ||
     maxLines < 1 ||
     overlapLines < 0 ||
     overlapLines >= maxLines ||
@@ -54,6 +57,11 @@ export function chunkSourceFile({
     let characterCount = 0;
 
     while (endIndex < segments.length && endIndex - startIndex < maxLines) {
+      if (
+        endIndex > startIndex &&
+        segments[endIndex].lineNumber !== segments[endIndex - 1].lineNumber + 1
+      )
+        break;
       const separatorLength = endIndex === startIndex ? 0 : 1;
       const nextLength = segments[endIndex].content.length + separatorLength;
       if (

@@ -26,6 +26,11 @@ export async function cloneRepository(
 
   const git = simpleGit({ timeout: { block: 120_000 } });
   git.env("GIT_TERMINAL_PROMPT", "0");
+  // Public repositories only: never borrow the developer's cached Git credentials.
+  git.env("GIT_CONFIG_COUNT", "1");
+  git.env("GIT_CONFIG_KEY_0", "credential.helper");
+  git.env("GIT_CONFIG_VALUE_0", "");
+  git.env("GIT_LFS_SKIP_SMUDGE", "1");
 
   await git.clone(repository.cloneUrl, absoluteDestination, [
     "--depth=1",
