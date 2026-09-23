@@ -4,7 +4,7 @@ import { ApiError } from "@/lib/api/errors";
 import { logEvent } from "@/lib/observability";
 import type { ConversationMessage, RetrievedChunk } from "@/types/rag";
 import { buildRagContext } from "../rag/context";
-import { generatedAnswerSchema, type GeneratedAnswer } from "./answer-schema";
+import { createAnswerSchema, type GeneratedAnswer } from "./answer-schema";
 import { getOpenAiClient } from "./client";
 import { CODE_ASSISTANT_SYSTEM_PROMPT } from "./prompts";
 
@@ -23,7 +23,9 @@ export async function generateAnswer(
       repository_context: buildRagContext(chunks),
       current_question: question,
     }),
-    text: { format: zodTextFormat(generatedAnswerSchema, "repository_answer") },
+    text: {
+      format: zodTextFormat(createAnswerSchema(chunks), "repository_answer"),
+    },
     max_output_tokens: 2_500,
     store: false,
   });

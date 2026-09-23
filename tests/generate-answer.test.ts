@@ -21,6 +21,11 @@ it("requests structured output without storing provider-side conversation state"
       },
     }),
   );
+  const request = parse.mock.calls[0][0];
+  expect(
+    request.text.format.schema.properties.sections.items.properties.citations
+      .items.properties.startLine,
+  ).toMatchObject({ minimum: 10, maximum: 12 });
 });
 it("handles refusal and incomplete responses explicitly", async () => {
   parse.mockResolvedValue({ status: "completed", output_parsed: null });

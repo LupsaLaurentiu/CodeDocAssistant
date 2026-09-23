@@ -11,6 +11,12 @@ The server enforces the first. It cannot prove the second. A passing citation te
 
 The tests reject unknown source IDs, out-of-range/reversed/non-integer lines, uncited sections and fabricated inline references. Context truncation updates the visible end line. An insufficient-context response discards speculative prose. An empty retrieval does not invoke the chat model.
 
+The response schema is built for each request: source IDs and line bounds are restricted to the exact supplied chunks, using the supported constraints in [OpenAI Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs). Server-side checks still enforce range order, non-empty prose, size limits and reference integrity.
+
+A repeated inline `path:line` label is accepted only when its path and range agree with that section's structured citations. Matching `[S1]` markers are rendered using server-owned source labels. Valid IP/HTTP endpoint ports are not mistaken for file citations. Unknown IDs, fabricated paths, ranges outside the section's cited span and references to merely consulted sources are still rejected. This corrects formatting-related false positives without treating arbitrary retrieved chunks as supporting citations.
+
+Rejected responses emit a `rag.citation_rejected` log with a reason code and section index, never generated prose or source content. The original rejected responses are not retained, so an old generic warning alone does not establish which check failed. No automatic extra model call is made to repair a rejected answer.
+
 The tests also exercise the application without paid model calls. Provider behavior is mocked, so passing tests are **not** evidence that a real model will always abstain or resist prompt injection.
 
 ## Proposed small live evaluation set

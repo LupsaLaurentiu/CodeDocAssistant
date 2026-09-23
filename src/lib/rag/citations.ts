@@ -1,4 +1,10 @@
 import type { GeneratedAnswer } from "@/lib/llm/answer-schema";
+import { logEvent } from "@/lib/observability";
+import {
+  formatCitation,
+  validateInlineReferences,
+  type ValidatedReference,
+} from "./inline-references";
 import type {
   RepositoryAnswer,
   RetrievedChunk,
@@ -19,7 +25,21 @@ export function consultedSources(chunks: RetrievedChunk[]): SourceCitation[] {
 
 function unverified(
   chunks: RetrievedChunk[],
+  reason:
+    | "sections"
+    | "section_shape"
+    | "source_id"
+    | "line_range"
+    | "inline_reference"
+    | "answer_size",
+  sectionIndex?: number,
 ): Omit<RepositoryAnswer, "retrievedChunks"> {
+  // Reason codes and counts only: never log generated prose or repository content.
+  logEvent("rag.citation_rejected", {
+    reason,
+    sectionIndex,
+    contextChunks: chunks.length,
+  });
   return {
     answer:
       "The generated answer contained references that could not be verified, so it was not displayed. Try asking a more specific question or inspect the consulted sources.",
@@ -31,7 +51,7 @@ function unverified(
   };
 }
 
-/** Resolve model IDs to trusted paths. Never let the model manufacture citation labels. */
+/** Resolve IDs to trusted paths and verify any repeated inline references. */
 export function validateAnswerCitations(
   generated: GeneratedAnswer,
   chunks: RetrievedChunk[],
@@ -46,55 +66,51 @@ export function validateAnswerCitations(
     };
   }
   if (!generated.sections.length || generated.sections.length > 12)
-    return unverified(chunks);
+    return unverified(chunks, "sections");
   const citations = new Map<string, SourceCitation>();
   const rendered: string[] = [];
-  for (const section of generated.sections) {
+  for (const [sectionIndex, section] of generated.sections.entries()) {
     if (
       !section.text.trim() ||
       section.text.length > 8_000 ||
       !section.citations.length ||
       section.citations.length > 12
     )
-      return unverified(chunks);
-    if (/(?:[\w./-]+\.[\w-]+):\d+(?:-\d+)?|\[S\d+\]/.test(section.text))
-      return unverified(chunks);
+      return unverified(chunks, "section_shape", sectionIndex);
     const labels = new Set<string>();
+    const sectionReferences: ValidatedReference[] = [];
     for (const reference of section.citations) {
       const match = /^S([1-9]\d*)$/.exec(reference.sourceId);
       const chunk = match ? chunks[Number(match[1]) - 1] : undefined;
+      if (!chunk) return unverified(chunks, "source_id", sectionIndex);
       if (
-        !chunk ||
         !Number.isInteger(reference.startLine) ||
         !Number.isInteger(reference.endLine) ||
         reference.startLine < chunk.startLine ||
         reference.endLine > chunk.endLine ||
         reference.endLine < reference.startLine
       )
-        return unverified(chunks);
+        return unverified(chunks, "line_range", sectionIndex);
       const citation = {
         chunkId: chunk.id,
         filePath: chunk.filePath,
         startLine: reference.startLine,
         endLine: reference.endLine,
       };
-      const label = `${citation.filePath}:${citation.startLine}-${citation.endLine}`;
       citations.set(
         `${citation.chunkId}:${citation.startLine}:${citation.endLine}`,
         citation,
       );
-      // A long code fence avoids repository filenames breaking Markdown code spans.
-      const fence = "`".repeat(
-        Math.max(1, ...(label.match(/`+/g) ?? []).map((run) => run.length + 1)),
-      );
-      labels.add(`${fence} ${label} ${fence}`);
+      sectionReferences.push({ sourceId: reference.sourceId, citation });
+      labels.add(formatCitation(citation));
     }
-    rendered.push(
-      `${section.text.trim()}\n\nSources: ${[...labels].join(", ")}`,
-    );
+    const text = validateInlineReferences(section.text, sectionReferences);
+    if (text === null)
+      return unverified(chunks, "inline_reference", sectionIndex);
+    rendered.push(`${text.trim()}\n\nSources: ${[...labels].join(", ")}`);
   }
   if (citations.size > 32 || rendered.join("\n\n").length > 60_000)
-    return unverified(chunks);
+    return unverified(chunks, "answer_size");
   return {
     answer: rendered.join("\n\n"),
     citations: [...citations.values()],

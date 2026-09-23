@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { validateAnswerCitations } from "@/lib/rag/citations";
 import { selectContextChunks, buildRagContext } from "@/lib/rag/context";
 import { chunk } from "./fixtures";
@@ -90,6 +90,79 @@ describe("grounded references", () => {
     expect(validateAnswerCitations(generated, [chunk]).citations).toHaveLength(
       1,
     );
+  });
+  it.each([
+    "The implementation is in `src/auth.ts:10-12`.",
+    "The implementation is in **src/auth.ts:10-12**.",
+    "The implementation (src/auth.ts:11) validates the session.",
+    "The implementation is described in [S1].",
+  ])(
+    "accepts a repeated inline reference only after validating it: %s",
+    (text) => {
+      const generated = answer();
+      generated.sections[0].text = text;
+      const result = validateAnswerCitations(generated, [chunk]);
+      expect(result.grounding).toBe("verified");
+      expect(result.answer).not.toContain("[S1]");
+      expect(result.citations).toHaveLength(1);
+    },
+  );
+  it.each([
+    "See [S9].",
+    "See [S01].",
+    "See src/auth.ts:9-12.",
+    "See src/auth.ts:12-10.",
+    "See src/auth.ts:10-13.",
+    "See src/auth.ts:10.5.",
+    "See src/auth.ts:10-11.5.",
+    "See fake/src/auth.ts:10-12.",
+    "See secret.ts:10-12.",
+    "See https://example.test/secret.ts:10-12.",
+  ])("still rejects invented or inconsistent inline references: %s", (text) => {
+    const generated = answer();
+    generated.sections[0].text = text;
+    expect(validateAnswerCitations(generated, [chunk]).grounding).toBe(
+      "unverified",
+    );
+  });
+  it("does not accept an inline source merely because it was retrieved", () => {
+    const generated = answer();
+    generated.sections[0].text = "See README.md:10-12.";
+    const other = { ...chunk, id: "other", filePath: "README.md" };
+    expect(validateAnswerCitations(generated, [chunk, other]).grounding).toBe(
+      "unverified",
+    );
+  });
+  it.each([
+    "Connect to 127.0.0.1:3000.",
+    "Connect to https://127.0.0.1:3000/.",
+    "Connect to https://example.test:8443/.",
+  ])("does not confuse an IP or URL port with a file citation: %s", (text) => {
+    const generated = answer();
+    generated.sections[0].text = text;
+    expect(validateAnswerCitations(generated, [chunk]).grounding).toBe(
+      "verified",
+    );
+  });
+  it("supports cited Next.js paths containing brackets and route groups", () => {
+    const filePath = "apps/web/src/app/[locale]/(checkout)/layout.tsx";
+    const generated = answer();
+    generated.sections[0].text = `The checkout layout is in \`${filePath}:10-12\`.`;
+    expect(
+      validateAnswerCitations(generated, [{ ...chunk, filePath }]).grounding,
+    ).toBe("verified");
+  });
+  it("logs the rejection category without source content or generated text", () => {
+    const log = vi.spyOn(console, "info").mockImplementation(() => {});
+    validateAnswerCitations(answer("S99"), [chunk]);
+    const serialized = log.mock.calls[0][0] as string;
+    expect(JSON.parse(serialized)).toMatchObject({
+      event: "rag.citation_rejected",
+      reason: "source_id",
+      sectionIndex: 0,
+    });
+    expect(serialized).not.toContain(chunk.content);
+    expect(serialized).not.toContain("login function");
   });
 });
 describe("bounded line-exact context", () => {
