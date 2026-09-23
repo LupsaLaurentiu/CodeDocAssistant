@@ -133,7 +133,7 @@ npm run format:check
 npm run build
 ```
 
-`npm run format` applies formatting. `npm run test:watch` watches unit tests. Tests disable live fetch calls and replace provider responses explicitly. The PostgreSQL integration test is opt-in with `TEST_DATABASE_URL`; it uses only an isolated test database.
+`npm run typecheck` generates Next.js route types before running TypeScript, so it also works in a fresh checkout before the first build. `npm run format` applies formatting. `npm run test:watch` watches unit tests. Tests disable live fetch calls and replace provider responses explicitly. The PostgreSQL integration test is opt-in with `TEST_DATABASE_URL`; it uses only an isolated test database.
 
 [Testing instructions](docs/TESTING.md) cover database integration, Playwright and demo regeneration. GitHub Actions runs lint/typecheck/unit tests/format/build, plus an isolated pgvector service and browser/database tests. No GitHub OpenAI secret is needed. Check the [workflow runs](https://github.com/LupsaLaurentiu/CodeDocAssistant/actions/workflows/ci.yml) for the result of a particular commit; local checks and remote CI are separate evidence.
 

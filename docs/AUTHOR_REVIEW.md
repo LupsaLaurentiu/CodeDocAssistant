@@ -48,10 +48,10 @@ I would first create a small labelled evaluation set with expected files and lin
 - [ ] Personally inspect the final main workflow and several answers against their cited source lines; record what I checked. New live-model requests incur API usage.
 - [x] Keep the clearly labelled scripted UX video for this submission. A live RAG video is optional and has not been recorded.
 - [x] Complete a publication preflight of current files, tracked Git history and demo artifacts. No credential-pattern matches or private source content were found; `.env` and my personal submission link remain outside Git. This is a scoped check, not a security certification.
-- [ ] Commit and push the latest local milestone and documentation changes.
+- [x] Commit and push the implementation milestone and first-person documentation to `main`.
 - [ ] Wait for both GitHub Actions jobs to pass on the final pushed commit.
 - [x] Make the repository public, as I requested, after checking current files and Git history for secrets.
-- [ ] Verify the repository, README, screenshots and optional video are accessible to the evaluators.
+- [x] Verify anonymous access to the public repository, README, all four screenshots and scripted video.
 - [ ] Open my private assignment submission link and click Submit manually.
 
 I keep the personal submission link in the original assignment email and in the ignored local file `.data/submission.md`, not in this public repository.
