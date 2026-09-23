@@ -158,11 +158,15 @@ Deliberately not implemented: authentication/billing, private-repository credent
 
 ## How I used AI during development
 
-I used Codex as a development tool for scaffolding, implementation, code review, tests and debugging. The choice of project, technology stack, local-first scope and development priorities were my decisions. I defined what I wanted to build, requested incremental milestones and used AI to help turn those decisions into a working application. My feedback from using the application guided the subsequent improvements.
+I used Codex as an AI-assisted development tool throughout the project, mainly to accelerate implementation, review code, suggest tests, investigate bugs and automate repetitive development tasks.
 
-For example, I tried the application against my DailyLove repository, asked for an architecture explanation and reported a Romanian follow-up that was rejected by request validation. I also shared screenshots showing double scrolling and a difficult-to-reach chat composer. Those observations guided subsequent validation and layout changes.
+The product direction, architecture, technology stack, scope and development priorities were my decisions. I broke the project into incremental milestones, defined the expected behaviour for each stage and reviewed the resulting implementation before moving forward. Where Codex proposed changes or implementations, I evaluated them against the requirements and adjusted the approach when necessary.
 
-During the implementation sessions, Codex ran lint, typechecking, formatting, production builds, isolated PostgreSQL integration tests and browser tests. I distinguish those automated checks from my own manual feedback: they check defined behavior, but they do not establish live-model accuracy or prove that an explanation is supported by its citations. The screenshots and video use a labelled fixture with mocked provider responses, not a live-model benchmark.
+A significant part of the iteration came from using the application myself. For example, I tested it against my DailyLove repository, asked it to explain the architecture and discovered that a Romanian follow-up question was incorrectly rejected by request validation. I also identified UI issues such as double scrolling and a chat composer that was difficult to reach. I used those observations to refine the validation logic and layout.
+
+Codex was also useful for running and interpreting automated development checks, including linting, typechecking, formatting, production builds, PostgreSQL integration tests and browser tests. I treated these checks as engineering feedback rather than proof of application quality: they verify defined behaviour, but they do not establish live-model accuracy or guarantee that generated explanations are fully supported by their citations.
+
+The screenshots and demo video use a clearly labelled fixture with mocked provider responses. They are intended to demonstrate the product flow and interface, not to serve as a benchmark of live-model quality.
 
 ## What I would do next
 
