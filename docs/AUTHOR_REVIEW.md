@@ -49,7 +49,7 @@ I would first create a small labelled evaluation set with expected files and lin
 - [x] Keep the clearly labelled scripted UX video for this submission. A live RAG video is optional and has not been recorded.
 - [x] Complete a publication preflight of current files, tracked Git history and demo artifacts. No credential-pattern matches or private source content were found; `.env` and my personal submission link remain outside Git. This is a scoped check, not a security certification.
 - [x] Commit and push the implementation milestone and first-person documentation to `main`.
-- [ ] Wait for both GitHub Actions jobs to pass on the final pushed commit.
+- [x] Verify both GitHub Actions jobs (`verify` and `browser-and-database`) passed on implementation commit `c9812e2`: [successful run](https://github.com/LupsaLaurentiu/CodeDocAssistant/actions/runs/35869180524). Subsequent documentation commits also run the workflow; their status is available in [Actions](https://github.com/LupsaLaurentiu/CodeDocAssistant/actions/workflows/ci.yml).
 - [x] Make the repository public, as I requested, after checking current files and Git history for secrets.
 - [x] Verify anonymous access to the public repository, README, all four screenshots and scripted video.
 - [ ] Open my private assignment submission link and click Submit manually.
