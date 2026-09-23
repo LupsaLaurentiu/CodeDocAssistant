@@ -8,9 +8,25 @@ npm run db:generate
 npm test
 ```
 
-The suite replaces provider methods with explicit mocks and blocks accidental fetch calls. It checks citation ranges, abstention handling, context boundaries, chunk line mapping, URL validation, ignored paths/symlinks, history bounds, retries, index reuse and safe errors. The one real database test is skipped unless `TEST_DATABASE_URL` is provided.
+The suite replaces provider methods with explicit mocks and blocks accidental fetch calls. It checks citation ranges, abstention handling, context boundaries, chunk line mapping, URL validation, ignored paths/symlinks, history bounds, retries, index reuse and safe errors. Clone regression tests run the installed Git and simple-git against temporary local repositories, without network access; they exercise the library's real security checks, inherited environment isolation and destination protection. The one real database test is skipped unless `TEST_DATABASE_URL` is provided.
 
 These tests do not measure a live model's accuracy, abstention rate or prompt-injection resistance.
+
+## Optional public clone smoke test — no OpenAI usage
+
+To exercise the same clone function against an actual public GitHub repository, opt in explicitly:
+
+```powershell
+$env:TEST_PUBLIC_REPOSITORY_URL = 'https://github.com/LupsaLaurentiu/website-technologies-scraper'
+npm test -- tests/clone-repository.test.ts
+Remove-Item Env:TEST_PUBLIC_REPOSITORY_URL
+```
+
+On macOS/Linux, use `TEST_PUBLIC_REPOSITORY_URL=https://github.com/LupsaLaurentiu/website-technologies-scraper npm test -- tests/clone-repository.test.ts`.
+
+This downloads into a temporary directory and removes only its own fixture afterward. It does not update the application database, generate embeddings or call OpenAI. It is skipped in normal CI. Git must be installed and available on `PATH`.
+
+Cloning preserves an allowlist of OS, proxy and certificate environment settings while excluding application secrets and injected Git options. It disables system/global Git configuration using Git's documented configuration controls ([Git environment reference](https://git-scm.com/docs/git#Documentation/git.txt-GITCONFIGGLOBAL)). The simple-git config-path opt-in is limited to a fixed null-device path (`NUL` on Windows, `/dev/null` elsewhere), never a user-supplied configuration file. Host Git aliases, credential helpers, URL rewrites and custom filters are not loaded; custom proxy/CA settings must be supplied through the supported environment variables instead.
 
 ## Isolated database and browser suite
 

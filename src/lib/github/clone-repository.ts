@@ -4,6 +4,7 @@ import path from "node:path";
 import { simpleGit } from "simple-git";
 
 import type { GitHubRepositoryReference } from "@/types/repository";
+import { createCloneEnvironment } from "./clone-environment";
 
 export async function cloneRepository(
   repository: GitHubRepositoryReference,
@@ -24,13 +25,13 @@ export async function cloneRepository(
     await mkdir(absoluteDestination, { recursive: true });
   }
 
-  const git = simpleGit({ timeout: { block: 120_000 } });
-  git.env("GIT_TERMINAL_PROMPT", "0");
-  // Public repositories only: never borrow the developer's cached Git credentials.
-  git.env("GIT_CONFIG_COUNT", "1");
-  git.env("GIT_CONFIG_KEY_0", "credential.helper");
-  git.env("GIT_CONFIG_VALUE_0", "");
-  git.env("GIT_LFS_SKIP_SMUDGE", "1");
+  // simple-git replaces (rather than merges) the child environment. The only
+  // config-path override is our fixed OS null device, never a user-provided file.
+  const git = simpleGit({
+    baseDir: absoluteDestination,
+    timeout: { block: 120_000 },
+    unsafe: { allowUnsafeConfigPaths: true },
+  }).env(createCloneEnvironment());
 
   await git.clone(repository.cloneUrl, absoluteDestination, [
     "--depth=1",
