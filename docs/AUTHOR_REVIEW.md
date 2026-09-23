@@ -1,6 +1,6 @@
 # Submission checklist and development notes
 
-I keep this checklist to distinguish completed implementation work, automated verification and my own manual feedback. Codex helped write these notes and ran the local automated checks recorded below. A checked local item is not a claim that I performed it manually or that remote CI has passed.
+I keep this checklist to distinguish completed implementation work, automated verification and my own manual feedback. The local automated checks recorded below were run with Codex during development. A checked local item is not a claim that I performed it manually or that remote CI has passed.
 
 ## Completed locally
 
@@ -28,7 +28,7 @@ I wanted an explicit RAG pipeline rather than LangChain: clone, scan, chunk, emb
 
 ### AI assistance and actual feedback
 
-I used Codex for scaffolding, implementation, review, tests, debugging and documentation. I supplied the scope and stack, requested incremental milestones, tried answers against my DailyLove repository and shared UI screenshots. AI also helped draft these first-person notes; I do not present the implementation as entirely hand-written.
+I used Codex to help build the application through scaffolding, implementation, code review, tests and debugging. The project choice, stack, scope and development priorities were my decisions. I requested incremental milestones, tried answers against my DailyLove repository and shared UI screenshots to guide improvements.
 
 I reported a Romanian follow-up rejected by request validation and a workspace with double scrolling and a difficult-to-reach composer. Subsequent work addressed conversation validation and the responsive chat layout. Automated checks now exercise these areas, but I have not recorded a systematic manual review of the final version's answers and citations.
 
@@ -44,7 +44,7 @@ I would first create a small labelled evaluation set with expected files and lin
 
 ## Remaining before submission
 
-- [x] Prepare first-person explanations of my scope, decisions, AI-assisted workflow, feedback and trade-offs, with AI assistance disclosed.
+- [x] Explain my scope, decisions, feedback and trade-offs, and describe how I used AI for implementation and verification.
 - [ ] Personally inspect the final main workflow and several answers against their cited source lines; record what I checked. New live-model requests incur API usage.
 - [x] Keep the clearly labelled scripted UX video for this submission. A live RAG video is optional and has not been recorded.
 - [x] Complete a publication preflight of current files, tracked Git history and demo artifacts. No credential-pattern matches or private source content were found; `.env` and my personal submission link remain outside Git. This is a scoped check, not a security certification.

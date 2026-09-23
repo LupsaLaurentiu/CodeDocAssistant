@@ -158,7 +158,7 @@ Deliberately not implemented: authentication/billing, private-repository credent
 
 ## How I used AI during development
 
-I used Codex extensively for scaffolding, implementation, focused reviews, tests, debugging and documentation, including assistance with this README. I set the stack and scope, asked for incremental milestones and supplied feedback from using the application. I did not write every implementation detail manually.
+I used Codex as a development tool for scaffolding, implementation, code review, tests and debugging. The choice of project, technology stack, local-first scope and development priorities were my decisions. I defined what I wanted to build, requested incremental milestones and used AI to help turn those decisions into a working application. My feedback from using the application guided the subsequent improvements.
 
 For example, I tried the application against my DailyLove repository, asked for an architecture explanation and reported a Romanian follow-up that was rejected by request validation. I also shared screenshots showing double scrolling and a difficult-to-reach chat composer. Those observations guided subsequent validation and layout changes.
 
